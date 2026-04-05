@@ -50,7 +50,7 @@ export const Footer = () => {
         </div>
         
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} SmartHostel Management System. All rights reserved Dinuu.</p>
+          <p>&copy; {new Date().getFullYear()} Intergrated Smart Hostel Management System. All rights reserved .</p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

@@ -18,6 +18,7 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('Student');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

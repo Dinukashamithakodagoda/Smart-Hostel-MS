@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { ShieldCheck, Users, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
-const mockPendingAllocations = [
+const initialPendingAllocations = [
   { id: 1, name: 'Kamal Perera', gender: 'Male', faculty: 'Engineering', allocatedRoom: 'Block C - 101' },
   { id: 2, name: 'Nimali Silva', gender: 'Female', faculty: 'Science', allocatedRoom: 'Block A - 205' },
   { id: 3, name: 'Sunil Fernando', gender: 'Male', faculty: 'Computing', allocatedRoom: 'Block D - 302' },
 ];
 
 export const WardenDashboard = () => {
+  const [allocations, setAllocations] = useState(initialPendingAllocations);
+
+  const handleApprove = (id: number) => {
+    setAllocations(allocations.filter(a => a.id !== id));
+    alert('Allocation approved and forwarded to AR.');
+  };
+
+  const handleReject = (id: number) => {
+    setAllocations(allocations.filter(a => a.id !== id));
+    alert('Allocation rejected.');
+  };
+
   return (
     <DashboardLayout allowedRole="Warden">
       <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
@@ -61,24 +73,40 @@ export const WardenDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {mockPendingAllocations.map((allocation) => (
-                <tr key={allocation.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{allocation.name}</td>
-                  <td className="px-6 py-4">{allocation.gender}</td>
-                  <td className="px-6 py-4">{allocation.faculty}</td>
-                  <td className="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">{allocation.allocatedRoom}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Approve">
-                        <CheckCircle className="w-5 h-5" />
-                      </button>
-                      <button className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Reject">
-                        <XCircle className="w-5 h-5" />
-                      </button>
-                    </div>
+              {allocations.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    No pending allocations to review.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                allocations.map((allocation) => (
+                  <tr key={allocation.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{allocation.name}</td>
+                    <td className="px-6 py-4">{allocation.gender}</td>
+                    <td className="px-6 py-4">{allocation.faculty}</td>
+                    <td className="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">{allocation.allocatedRoom}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleApprove(allocation.id)}
+                          className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" 
+                          title="Approve"
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => handleReject(allocation.id)}
+                          className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
+                          title="Reject"
+                        >
+                          <XCircle className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

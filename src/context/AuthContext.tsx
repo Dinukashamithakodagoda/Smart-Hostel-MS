@@ -8,7 +8,8 @@ export type Role =
   | 'AR' 
   | 'Marshal' 
   | 'Maintenance Supervisor' 
-  | 'Cleaning Supervisor';
+  | 'Cleaning Supervisor'
+  | 'Canteen';
 
 interface User {
   email: string;
@@ -60,6 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         break;
       case 'Cleaning Supervisor':
         navigate('/cleaning-dashboard');
+        break;
+      case 'Canteen':
+        navigate('/canteen-dashboard');
         break;
       default:
         navigate('/');

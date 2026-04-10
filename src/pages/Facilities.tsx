@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, Utensils, BookOpen, WashingMachine, MonitorPlay, Dumbbell } from 'lucide-react';
+import { Wifi, Utensils, BookOpen, WashingMachine, MonitorPlay, Dumbbell, Coffee } from 'lucide-react';
 
 const facilities = [
   {
@@ -43,6 +43,13 @@ const facilities = [
     icon: Dumbbell,
     color: 'text-red-600',
     bg: 'bg-red-50'
+  },
+  {
+    title: 'Canteen Management',
+    description: 'Order food online, track your orders, and manage your canteen expenses directly from the dashboard.',
+    icon: Coffee,
+    color: 'text-amber-600',
+    bg: 'bg-amber-50'
   }
 ];
 

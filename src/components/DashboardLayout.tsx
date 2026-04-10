@@ -2,14 +2,18 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
-export const DashboardLayout = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: string }) => {
+export const DashboardLayout = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: string | string[] }) => {
   const { user, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role !== allowedRole) {
+  const isAllowed = Array.isArray(allowedRole) 
+    ? allowedRole.includes(user?.role as string)
+    : user?.role === allowedRole;
+
+  if (!isAllowed) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <div className="text-center">

@@ -10,7 +10,8 @@ const roles: Role[] = [
   'AR',
   'Marshal',
   'Maintenance Supervisor',
-  'Cleaning Supervisor'
+  'Cleaning Supervisor',
+  'Canteen'
 ];
 
 export const Login = () => {

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { GraduationCap, Bed, FileText, Bell, X, Upload, ImagePlus, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { GraduationCap, Bed, FileText, Bell, X, Upload, ImagePlus, Calendar, CheckCircle, Clock, Coffee } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useComplaints, ComplaintCategory } from '../../context/ComplaintContext';
+import { useAuth } from '../../context/AuthContext';
 
 const mockNotices = [
   { id: 1, title: 'Water Supply Interruption', date: '2026-04-04', content: 'Water supply will be interrupted in Block A from 10 AM to 2 PM due to maintenance.', isRead: false },
@@ -9,28 +12,42 @@ const mockNotices = [
 ];
 
 export const StudentDashboard = () => {
+  const { user } = useAuth();
+  const { complaints, addComplaint } = useComplaints();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNoticesModalOpen, setIsNoticesModalOpen] = useState(false);
   const [notices, setNotices] = useState(mockNotices);
   const unreadCount = notices.filter(n => !n.isRead).length;
+  
+  const studentComplaints = complaints.filter(c => c.submittedByName === user?.name);
+  
   const [complaintForm, setComplaintForm] = useState({
     subject: '',
-    category: 'Maintenance',
+    category: 'Maintenance' as ComplaintCategory,
     description: '',
-    photo: null as File | null
+    photo: null as string | null
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setComplaintForm({ ...complaintForm, photo: file });
-      setPhotoPreview(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setComplaintForm({ ...complaintForm, photo: url });
+      setPhotoPreview(url);
     }
   };
 
   const handleSubmitComplaint = (e: React.FormEvent) => {
     e.preventDefault();
+    addComplaint({
+      subject: complaintForm.subject,
+      category: complaintForm.category,
+      description: complaintForm.description,
+      photo: complaintForm.photo,
+      submittedByRole: user?.role || 'Student',
+      submittedByName: user?.name || 'Student User',
+    });
     alert('Complaint submitted successfully!');
     setIsModalOpen(false);
     setComplaintForm({ subject: '', category: 'Maintenance', description: '', photo: null });
@@ -102,7 +119,7 @@ export const StudentDashboard = () => {
             <FileText className="h-5 w-5 text-red-600 dark:text-red-400" />
             <h3 className="font-semibold text-red-900 dark:text-red-300">Complaints</h3>
           </div>
-          <p className="text-sm text-red-800 dark:text-red-200 mb-1">0 Active Complaints</p>
+          <p className="text-sm text-red-800 dark:text-red-200 mb-1">{studentComplaints.length} Active Complaints</p>
           <button 
             onClick={() => setIsModalOpen(true)}
             className="mt-2 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-3 py-1.5 rounded-lg hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors"
@@ -127,6 +144,28 @@ export const StudentDashboard = () => {
           >
             View All
           </button>
+        </div>
+
+        <div className="bg-orange-50/50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 p-6 rounded-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Coffee className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <h3 className="font-semibold text-orange-900 dark:text-orange-300">Canteen</h3>
+          </div>
+          <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">Order food from the hostel canteen.</p>
+          <div className="flex gap-2">
+            <Link 
+              to="/canteen-menu"
+              className="text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 px-3 py-1.5 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+            >
+              View Menu
+            </Link>
+            <Link 
+              to="/canteen-order"
+              className="text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 px-3 py-1.5 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+            >
+              My Orders
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -168,6 +207,7 @@ export const StudentDashboard = () => {
                   <option value="Cleaning">Cleaning & Hygiene</option>
                   <option value="Furniture">Furniture & Assets</option>
                   <option value="Security">Security & Discipline</option>
+                  <option value="Canteen">Canteen & Food</option>
                   <option value="Other">Other</option>
                 </select>
               </div>

@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { ShieldCheck, AlertOctagon, ArrowLeft, Camera, Upload, X, Search, DoorOpen, Users } from 'lucide-react';
+import { ShieldCheck, AlertOctagon, ArrowLeft, Camera, Upload, X, Search, DoorOpen, Users, FileText } from 'lucide-react';
+import { useComplaints, ComplaintCategory } from '../../context/ComplaintContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface Incident {
   id: number;
@@ -20,7 +22,10 @@ interface StudentRoom {
 }
 
 export const MarshalDashboard = () => {
+  const { user } = useAuth();
+  const { addComplaint } = useComplaints();
   const [isLoggingIncident, setIsLoggingIncident] = useState(false);
+  const [isLoggingComplaint, setIsLoggingComplaint] = useState(false);
   const [isViewingRooms, setIsViewingRooms] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -30,6 +35,13 @@ export const MarshalDashboard = () => {
     description: '',
     location: '',
   });
+  
+  const [complaintForm, setComplaintForm] = useState({
+    subject: '',
+    category: 'Canteen' as ComplaintCategory,
+    description: '',
+  });
+
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +97,23 @@ export const MarshalDashboard = () => {
     setFormData({ title: '', description: '', location: '' });
     removePhoto();
     alert('Incident logged successfully!');
+  };
+
+  const handleComplaintSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addComplaint({
+      subject: complaintForm.subject,
+      category: complaintForm.category,
+      description: complaintForm.description,
+      photo: photoPreview,
+      submittedByRole: user?.role || 'Marshal',
+      submittedByName: user?.name || 'Marshal User',
+    });
+    
+    setIsLoggingComplaint(false);
+    setComplaintForm({ subject: '', category: 'Canteen', description: '' });
+    removePhoto();
+    alert('Complaint logged successfully!');
   };
 
   if (isViewingRooms) {

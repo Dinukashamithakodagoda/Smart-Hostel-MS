@@ -14,6 +14,9 @@ import { ARDashboard } from '../pages/dashboards/ARDashboard';
 import { MarshalDashboard } from '../pages/dashboards/MarshalDashboard';
 import { MaintenanceDashboard } from '../pages/dashboards/MaintenanceDashboard';
 import { CleaningDashboard } from '../pages/dashboards/CleaningDashboard';
+import { CanteenMenu } from '../pages/canteen/CanteenMenu';
+import { CanteenOrder } from '../pages/canteen/CanteenOrder';
+import { CanteenManagerDashboard } from '../pages/dashboards/CanteenManagerDashboard';
 
 export const AppRoutes = () => {
   return (
@@ -34,6 +37,11 @@ export const AppRoutes = () => {
       <Route path="/marshal-dashboard" element={<MarshalDashboard />} />
       <Route path="/maintenance-dashboard" element={<MaintenanceDashboard />} />
       <Route path="/cleaning-dashboard" element={<CleaningDashboard />} />
+      <Route path="/canteen-dashboard" element={<CanteenManagerDashboard />} />
+      
+      {/* Canteen Student Pages */}
+      <Route path="/canteen-menu" element={<CanteenMenu />} />
+      <Route path="/canteen-order" element={<CanteenOrder />} />
     </Routes>
   );
 };

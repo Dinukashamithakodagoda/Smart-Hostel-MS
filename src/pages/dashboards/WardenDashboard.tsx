@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { ShieldCheck, Users, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Wrench, Sparkles, Send, Camera, Upload, X } from 'lucide-react';
+import { ShieldCheck, Users, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Wrench, Sparkles, Send, Camera, Upload, X, Coffee, FileText } from 'lucide-react';
+import { useComplaints } from '../../context/ComplaintContext';
+import { useAuth } from '../../context/AuthContext';
 
 const initialPendingAllocations = [
   { id: 1, name: 'Kamal Perera', gender: 'Male', faculty: 'Engineering', allocatedRoom: 'Block C - 101' },
@@ -19,12 +21,15 @@ interface CriticalIssue {
 }
 
 export const WardenDashboard = () => {
+  const { user } = useAuth();
+  const { complaints, addComplaint, updateComplaintStatus } = useComplaints();
   const [allocations, setAllocations] = useState(initialPendingAllocations);
   const [isViewingIssues, setIsViewingIssues] = useState(false);
+  const [isViewingComplaints, setIsViewingComplaints] = useState(false);
   
   // Service Request State
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-  const [requestType, setRequestType] = useState<'Maintenance' | 'Cleaning'>('Maintenance');
+  const [requestType, setRequestType] = useState<'Maintenance' | 'Cleaning' | 'Canteen'>('Maintenance');
   const [requestForm, setRequestForm] = useState({
     location: '',
     description: '',
@@ -32,6 +37,22 @@ export const WardenDashboard = () => {
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleRequestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addComplaint({
+      subject: `${requestType} Request - ${requestForm.location} (${requestForm.urgency} Urgency)`,
+      category: requestType,
+      description: requestForm.description,
+      photo: photoPreview,
+      submittedByRole: user?.role || 'Warden',
+      submittedByName: user?.name || 'Warden User',
+    });
+    alert(`${requestType} request submitted successfully for ${requestForm.location}!`);
+    setIsSubmittingRequest(false);
+    setRequestForm({ location: '', description: '', urgency: 'Normal' });
+    setPhotoPreview(null);
+  };
 
   const [issues, setIssues] = useState<CriticalIssue[]>([
     { id: 1, title: 'Water Pipe Burst', description: 'Major leak in Block A ground floor.', reportedBy: 'Maintenance Supervisor', date: '2026-04-05', status: 'Pending', priority: 'Critical' },
@@ -69,14 +90,6 @@ export const WardenDashboard = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const handleRequestSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(`${requestType} request submitted successfully for ${requestForm.location}!`);
-    setIsSubmittingRequest(false);
-    setRequestForm({ location: '', description: '', urgency: 'Normal' });
-    setPhotoPreview(null);
   };
 
   const pendingIssuesCount = issues.filter(i => i.status === 'Pending').length;
@@ -276,6 +289,107 @@ export const WardenDashboard = () => {
     );
   }
 
+  if (isViewingComplaints) {
+    return (
+      <DashboardLayout allowedRole="Warden">
+        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+          <button 
+            onClick={() => setIsViewingComplaints(false)}
+            className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Complaints</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Review, accept, or reject student complaints.</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Complaint</th>
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Category</th>
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Submitted By</th>
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Date</th>
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Status</th>
+                  <th className="p-4 text-sm font-semibold text-gray-900 dark:text-white">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {complaints.map((complaint) => (
+                  <tr key={complaint.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="p-4">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{complaint.subject}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{complaint.description}</p>
+                      {complaint.photo && (
+                        <a href={complaint.photo} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mt-1 inline-block">
+                          View Photo
+                        </a>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {complaint.category}
+                      </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
+                      {complaint.submittedByName}<br/>
+                      <span className="text-xs text-gray-400">{complaint.submittedByRole}</span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600 dark:text-gray-300">{new Date(complaint.date).toLocaleDateString()}</td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        complaint.status === 'Resolved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                        complaint.status === 'Accepted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                        complaint.status === 'Rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      }`}>
+                        {complaint.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {complaint.status === 'Pending' && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              updateComplaintStatus(complaint.id, 'Accepted');
+                              alert('Complaint accepted and forwarded to AR.');
+                            }}
+                            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" 
+                            title="Accept"
+                          >
+                            <CheckCircle className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => updateComplaintStatus(complaint.id, 'Rejected')}
+                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
+                            title="Reject"
+                          >
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {complaints.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500 dark:text-gray-400">
+                      No complaints found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout allowedRole="Warden">
       <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
@@ -319,6 +433,22 @@ export const WardenDashboard = () => {
 
         <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
           <div className="flex items-center gap-3 mb-4">
+            <FileText className="h-5 w-5 text-red-600 dark:text-red-500" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">Student Complaints</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+            {complaints.filter(c => c.status === 'Pending').length} pending complaints require review.
+          </p>
+          <button 
+            onClick={() => setIsViewingComplaints(true)}
+            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+          >
+            Review Complaints &rarr;
+          </button>
+        </div>
+
+        <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-3 mb-4">
             <Wrench className="h-5 w-5 text-blue-600 dark:text-blue-500" />
             <h3 className="font-semibold text-gray-900 dark:text-white">Service Requests</h3>
           </div>
@@ -339,6 +469,13 @@ export const WardenDashboard = () => {
             >
               <Sparkles className="h-3.5 w-3.5" />
               Cleaning
+            </button>
+            <button 
+              onClick={() => { setRequestType('Canteen'); setIsSubmittingRequest(true); }}
+              className="text-xs font-medium text-orange-700 bg-orange-50 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50 flex items-center gap-1.5"
+            >
+              <Coffee className="h-3.5 w-3.5" />
+              Canteen
             </button>
           </div>
         </div>

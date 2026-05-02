@@ -1,9 +1,13 @@
 import express, { type Request, type Response } from 'express';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { CanteenItem } from '../models/CanteenItem.js';
+import { DeliveryStatus } from '../models/DeliveryStatus.js';
 import { Order } from '../models/Order.js';
+import { Notice } from '../models/Notice.js';
 
 export const canteenRouter = express.Router();
+
+const hostelBlocks = ['A', 'B', 'C', 'D', 'E'] as const;
 
 canteenRouter.get('/items', requireAuth, async (_req: Request, res: Response) => {
   const items = await CanteenItem.find();
@@ -84,6 +88,39 @@ canteenRouter.get('/orders/mine', requireAuth, async (req: AuthedRequest, res: R
   return res.json({ orders });
 });
 
+canteenRouter.get('/orders/summary/items', requireAuth, requireRole(['Canteen']), async (_req: Request, res: Response) => {
+  const summary = await Order.aggregate([
+    { $match: { status: { $ne: 'cancelled' } } },
+    { $unwind: '$items' },
+    {
+      $group: {
+        _id: '$items.item',
+        totalQty: { $sum: '$items.quantity' },
+      },
+    },
+    {
+      $lookup: {
+        from: 'canteenitems',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'item',
+      },
+    },
+    { $unwind: { path: '$item', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        itemId: '$_id',
+        itemName: { $ifNull: ['$item.name', 'Unknown item'] },
+        totalQty: 1,
+      },
+    },
+    { $sort: { totalQty: -1 } },
+  ]);
+
+  return res.json({ summary });
+});
+
 canteenRouter.patch('/orders/:id/status', requireAuth, requireRole(['Canteen']), async (req: Request, res: Response) => {
   const { status } = req.body as { status?: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled' };
   if (!status) {
@@ -99,4 +136,54 @@ canteenRouter.patch('/orders/:id/status', requireAuth, requireRole(['Canteen']),
   }
 
   return res.json({ order });
+});
+
+canteenRouter.get('/delivery/status', requireAuth, requireRole(['Canteen']), async (_req: Request, res: Response) => {
+  const status = await DeliveryStatus.findOne().sort({ updatedAt: -1 }).lean();
+  return res.json({ status });
+});
+
+canteenRouter.patch('/delivery/status', requireAuth, requireRole(['Canteen']), async (req: AuthedRequest, res: Response) => {
+  const { block } = req.body as { block?: string | null };
+  const normalizedBlock = block?.trim().toUpperCase();
+
+  if (!normalizedBlock) {
+    return res.status(400).json({ message: 'Block is required' });
+  }
+
+  if (!hostelBlocks.includes(normalizedBlock as (typeof hostelBlocks)[number])) {
+    return res.status(400).json({ message: 'Invalid block' });
+  }
+
+  const status = await DeliveryStatus.findOneAndUpdate(
+    {},
+    { currentBlock: normalizedBlock, updatedBy: req.user?.id },
+    { new: true, upsert: true }
+  );
+
+  return res.json({ status });
+});
+
+canteenRouter.post('/delivery/arrived', requireAuth, requireRole(['Canteen']), async (req: AuthedRequest, res: Response) => {
+  const { block } = req.body as { block?: string };
+  const normalizedBlock = block?.trim().toUpperCase();
+
+  if (!normalizedBlock) {
+    return res.status(400).json({ message: 'Block is required' });
+  }
+
+  if (!hostelBlocks.includes(normalizedBlock as (typeof hostelBlocks)[number])) {
+    return res.status(400).json({ message: 'Invalid block' });
+  }
+
+  const notice = await Notice.create({
+    title: `Canteen delivery arrived - Block ${normalizedBlock}`,
+    content: `Canteen delivery vehicle has arrived at Block ${normalizedBlock}. Please collect your orders from the drop point.`,
+    audience: 'Student',
+    targetBlock: normalizedBlock,
+    createdBy: req.user?.id,
+  });
+
+  const hydrated = await Notice.findById(notice._id).populate('createdBy', 'name email role');
+  return res.status(201).json({ notice: hydrated });
 });

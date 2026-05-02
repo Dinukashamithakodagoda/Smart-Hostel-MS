@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { NoticeComposer } from '../../components/NoticeComposer';
+import { NoticeManager } from '../../components/NoticeManager';
 import { ClipboardList, FileSpreadsheet, CheckCircle, Download } from 'lucide-react';
 
 export const ARDashboard = () => {
@@ -129,6 +131,11 @@ export const ARDashboard = () => {
             )}
           </button>
         </div>
+        <NoticeComposer />
+      </div>
+
+      <div className="mt-6">
+        <NoticeManager />
       </div>
 
       <div className="mt-8 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 overflow-hidden">

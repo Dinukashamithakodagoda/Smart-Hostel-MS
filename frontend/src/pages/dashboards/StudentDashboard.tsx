@@ -191,6 +191,13 @@ export const StudentDashboard = () => {
     }
   };
 
+  const normalizedStatus = application?.status
+    ? String(application.status).toLowerCase().replace('-', '_')
+    : null;
+  const isWardenApproved = normalizedStatus === 'approved_warden' || normalizedStatus === 'approved';
+  const isWardenRejected = normalizedStatus === 'rejected_warden' || normalizedStatus === 'rejected';
+  const isArFinalized = normalizedStatus === 'finalized';
+
   return (
     <DashboardLayout allowedRole="Student">
       <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-700">
@@ -217,11 +224,34 @@ export const StudentDashboard = () => {
                 <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
               ) : application ? (
                 <span className="font-medium text-gray-900 dark:text-white">
-                  {application.assignedRoom || 'Pending'}
+                  {application.assignedRoom ? `Room ${application.assignedRoom}` : 'Pending'}
                 </span>
               ) : (
                 <span className="text-sm text-gray-500 dark:text-gray-400">No application</span>
               )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-100 dark:border-blue-800/50">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Hostel Block</span>
+                {applicationLoading ? (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+                ) : application?.assignedBlock ? (
+                  <span className="font-medium text-gray-900 dark:text-white">Block {application.assignedBlock}</span>
+                ) : (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Pending</span>
+                )}
+              </div>
+              <div className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-100 dark:border-blue-800/50">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Room Number</span>
+                {applicationLoading ? (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+                ) : application?.assignedRoom ? (
+                  <span className="font-medium text-gray-900 dark:text-white">{application.assignedRoom}</span>
+                ) : (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Pending</span>
+                )}
+              </div>
             </div>
             
             <div className="relative pt-2 pl-2">
@@ -245,11 +275,11 @@ export const StudentDashboard = () => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {applicationLoading
                         ? 'Loading...'
-                        : application?.status === 'approved_warden'
+                        : isWardenApproved
                           ? 'Approved'
-                          : application?.status === 'rejected_warden'
+                          : isWardenRejected
                             ? 'Rejected'
-                            : 'Pending review'}
+                            : 'Waiting for Warden review'}
                     </p>
                   </div>
                 </div>
@@ -262,11 +292,13 @@ export const StudentDashboard = () => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {applicationLoading
                         ? 'Loading...'
-                        : application?.status === 'finalized'
+                        : isArFinalized
                           ? 'Finalized'
-                          : application?.status === 'approved_warden'
+                          : isWardenApproved
                             ? 'Pending AR approval'
-                            : 'Waiting for Warden'}
+                            : isWardenRejected
+                              ? 'Rejected by Warden'
+                              : 'Waiting for Warden review'}
                     </p>
                   </div>
                 </div>
@@ -400,7 +432,12 @@ export const StudentDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
                 <select 
                   value={complaintForm.category}
-                  onChange={(e) => setComplaintForm({...complaintForm, category: e.target.value})}
+                  onChange={(e) =>
+                    setComplaintForm({
+                      ...complaintForm,
+                      category: e.target.value as ComplaintCategory,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                 >
                   <option value="Maintenance">Maintenance (Electrical/Plumbing)</option>

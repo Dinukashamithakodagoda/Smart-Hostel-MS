@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { NoticeComposer } from '../../components/NoticeComposer';
+import { NoticeManager } from '../../components/NoticeManager';
 import { Users, ClipboardCheck, CheckCircle, XCircle, Save, ArrowLeft } from 'lucide-react';
 
 interface Block {
@@ -182,6 +184,11 @@ export const SubWardenDashboard = () => {
         )}
       </div>
       
+      <div className="mb-6 space-y-6">
+        <NoticeComposer />
+        <NoticeManager />
+      </div>
+
       {!isMarkingAttendance ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">

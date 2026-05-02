@@ -10,6 +10,17 @@ export const CanteenManagerDashboard = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [deliveryBlock, setDeliveryBlock] = useState('A');
+  const [deliveryNoticeMessage, setDeliveryNoticeMessage] = useState<string | null>(null);
+  const [deliveryNoticeError, setDeliveryNoticeError] = useState<string | null>(null);
+  const [isSendingDeliveryNotice, setIsSendingDeliveryNotice] = useState(false);
+  const [currentBlock, setCurrentBlock] = useState<string | null>(null);
+  const [isUpdatingBlock, setIsUpdatingBlock] = useState(false);
+  const [blockStatusMessage, setBlockStatusMessage] = useState<string | null>(null);
+  const [blockStatusError, setBlockStatusError] = useState<string | null>(null);
+  const [orderSummary, setOrderSummary] = useState<Array<{ itemName: string; totalQty: number }>>([]);
+  const [orderSummaryLoading, setOrderSummaryLoading] = useState(true);
+  const [orderSummaryError, setOrderSummaryError] = useState<string | null>(null);
   
   // Form state for adding/editing food
   const [isEditing, setIsEditing] = useState(false);
@@ -75,6 +86,57 @@ export const CanteenManagerDashboard = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const fetchDeliveryStatus = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${apiBaseUrl}/api/canteen/delivery/status`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        const block = data?.status?.currentBlock || null;
+        setCurrentBlock(block);
+        if (block) {
+          setDeliveryBlock(block);
+        }
+      } catch {
+        // Ignore status fetch errors to avoid blocking dashboard.
+      }
+    };
+
+    const fetchOrderSummary = async () => {
+      try {
+        setOrderSummaryLoading(true);
+        setOrderSummaryError(null);
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${apiBaseUrl}/api/canteen/orders/summary/items`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data?.message || 'Failed to load order summary');
+        }
+
+        const data = await response.json();
+        setOrderSummary(data.summary || []);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load order summary';
+        setOrderSummaryError(message);
+      } finally {
+        setOrderSummaryLoading(false);
+      }
+    };
+
+    fetchDeliveryStatus();
+    fetchOrderSummary();
+  }, [apiBaseUrl]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -96,6 +158,67 @@ export const CanteenManagerDashboard = () => {
     }
     setIsEditing(false);
     setCurrentFood({ name: '', price: 0, image: '', category: 'Lunch', available: true });
+  };
+
+  const sendDeliveryNotice = async () => {
+    try {
+      setDeliveryNoticeMessage(null);
+      setDeliveryNoticeError(null);
+      setIsSendingDeliveryNotice(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${apiBaseUrl}/api/canteen/delivery/arrived`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ block: deliveryBlock }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Failed to send notice');
+      }
+
+      setDeliveryNoticeMessage(`Notice sent to Block ${deliveryBlock} students.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send notice';
+      setDeliveryNoticeError(message);
+    } finally {
+      setIsSendingDeliveryNotice(false);
+    }
+  };
+
+  const updateDeliveryBlock = async () => {
+    try {
+      setBlockStatusMessage(null);
+      setBlockStatusError(null);
+      setIsUpdatingBlock(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${apiBaseUrl}/api/canteen/delivery/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ block: deliveryBlock }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Failed to update status');
+      }
+
+      const data = await response.json();
+      const block = data?.status?.currentBlock || deliveryBlock;
+      setCurrentBlock(block);
+      setBlockStatusMessage(`Current delivery block updated to ${block}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update status';
+      setBlockStatusError(message);
+    } finally {
+      setIsUpdatingBlock(false);
+    }
   };
 
   const editFood = (item: FoodItem) => {
@@ -143,6 +266,112 @@ export const CanteenManagerDashboard = () => {
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Menu Items</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{menu.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Delivery Arrival Notice</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Notify students when the delivery vehicle reaches a hostel block.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 dark:text-gray-300">Block</label>
+            <select
+              value={deliveryBlock}
+              onChange={(e) => setDeliveryBlock(e.target.value)}
+              className="text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg p-2"
+            >
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+            </select>
+            <button
+              onClick={sendDeliveryNotice}
+              disabled={isSendingDeliveryNotice}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSendingDeliveryNotice ? 'Sending...' : 'Send Notice'}
+            </button>
+          </div>
+        </div>
+        {(deliveryNoticeMessage || deliveryNoticeError) && (
+          <div className="px-4 py-3">
+            {deliveryNoticeMessage && (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{deliveryNoticeMessage}</p>
+            )}
+            {deliveryNoticeError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{deliveryNoticeError}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Delivery Vehicle Status</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Set the current hostel block for the delivery vehicle.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-300">Current Block</label>
+              <select
+                value={deliveryBlock}
+                onChange={(e) => setDeliveryBlock(e.target.value)}
+                className="text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg p-2"
+              >
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+              </select>
+              <button
+                onClick={updateDeliveryBlock}
+                disabled={isUpdatingBlock}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isUpdatingBlock ? 'Updating...' : 'Update Status'}
+              </button>
+            </div>
+          </div>
+          <div className="px-4 py-3 space-y-1">
+            <p className="text-sm text-gray-600 dark:text-gray-300">Live block: {currentBlock || 'Not set'}</p>
+            {blockStatusMessage && (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{blockStatusMessage}</p>
+            )}
+            {blockStatusError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{blockStatusError}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Order Summary</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total ordered quantities by item.</p>
+          </div>
+          <div className="p-4">
+            {orderSummaryLoading ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Loading summary...</p>
+            ) : orderSummaryError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{orderSummaryError}</p>
+            ) : orderSummary.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No order summary data yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {orderSummary.map((row) => (
+                  <div key={row.itemName} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+                    <span>{row.itemName}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{row.totalQty}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

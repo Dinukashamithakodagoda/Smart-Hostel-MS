@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { NoticeComposer } from '../../components/NoticeComposer';
+import { NoticeManager } from '../../components/NoticeManager';
 import { ShieldCheck, Users, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Wrench, Sparkles, Send, Camera, Upload, X, Coffee, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +14,8 @@ export const WardenDashboard = () => {
   const [allocations, setAllocations] = useState<any[]>([]);
   const [allocationsLoading, setAllocationsLoading] = useState(true);
   const [allocationsError, setAllocationsError] = useState<string | null>(null);
+  const [overrideSelections, setOverrideSelections] = useState<Record<string, { block: string; room: string }>>({});
+  const [overrideMessage, setOverrideMessage] = useState<Record<string, string | null>>({});
   const [stats, setStats] = useState<{ totalCapacity: number; allocatedCount: number; availableRooms: number } | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [issues, setIssues] = useState<any[]>([]);
@@ -149,6 +153,13 @@ export const WardenDashboard = () => {
 
       const data = await response.json();
       setAllocations(data.applications || []);
+      const initialOverrides = (data.applications || []).reduce((acc: Record<string, { block: string; room: string }>, allocation: any) => {
+        const block = allocation.assignedBlock || '';
+        const room = allocation.assignedRoom || '';
+        acc[allocation._id] = { block, room };
+        return acc;
+      }, {});
+      setOverrideSelections(initialOverrides);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load applications';
       setAllocationsError(message);
@@ -210,6 +221,55 @@ export const WardenDashboard = () => {
     };
 
     approve();
+  };
+
+  const handleOverrideChange = (id: string, field: 'block' | 'room', value: string) => {
+    setOverrideSelections((prev) => ({
+      ...prev,
+      [id]: {
+        block: field === 'block' ? value : prev[id]?.block || '',
+        room: field === 'room' ? value : prev[id]?.room || '',
+      },
+    }));
+  };
+
+  const handleOverrideSave = (id: string) => {
+    const submit = async () => {
+      try {
+        const selection = overrideSelections[id];
+        if (!selection?.block || !selection?.room) {
+          alert('Please select both block and room.');
+          return;
+        }
+
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${apiBaseUrl}/api/applications/${id}/warden-override`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            assignedBlock: selection.block,
+            assignedRoom: selection.room,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data?.message || 'Failed to override room');
+        }
+
+        const data = await response.json();
+        setAllocations((prev) => prev.map((a) => (a._id === id ? data.application : a)));
+        setOverrideMessage((prev) => ({ ...prev, [id]: 'Override saved.' }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to override room';
+        setOverrideMessage((prev) => ({ ...prev, [id]: message }));
+      }
+    };
+
+    submit();
   };
 
   const handleReject = (id: number) => {
@@ -613,6 +673,8 @@ export const WardenDashboard = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <NoticeComposer className="md:col-span-3" />
+        <NoticeManager className="md:col-span-3" />
         <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
           <div className="flex items-center gap-3 mb-4">
             <Users className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -716,25 +778,27 @@ export const WardenDashboard = () => {
                 <th className="px-6 py-3">Gender</th>
                 <th className="px-6 py-3">Faculty</th>
                 <th className="px-6 py-3">System Allocated Room</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Manual Override (Block + Room)</th>
                 <th className="px-6 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {allocationsLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                     Loading pending allocations...
                   </td>
                 </tr>
               ) : allocationsError ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-red-600 dark:text-red-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-red-600 dark:text-red-400">
                     {allocationsError}
                   </td>
                 </tr>
               ) : allocations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                     No pending allocations to review.
                   </td>
                 </tr>
@@ -745,6 +809,41 @@ export const WardenDashboard = () => {
                     <td className="px-6 py-4">{allocation.gender}</td>
                     <td className="px-6 py-4">{allocation.faculty}</td>
                     <td className="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">{allocation.assignedRoom || 'Pending'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">Waiting for Warden review</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2 min-w-[200px]">
+                        <div className="flex gap-2">
+                          <select
+                            value={overrideSelections[allocation._id]?.block || ''}
+                            onChange={(e) => handleOverrideChange(allocation._id, 'block', e.target.value)}
+                            className="text-xs bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg p-2"
+                          >
+                            <option value="">Block</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={overrideSelections[allocation._id]?.room || ''}
+                            onChange={(e) => handleOverrideChange(allocation._id, 'room', e.target.value)}
+                            placeholder="Room"
+                            className="text-xs bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg p-2 w-24"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleOverrideSave(allocation._id)}
+                          className="text-xs font-medium text-white bg-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-700 w-fit"
+                        >
+                          Save Override
+                        </button>
+                        {overrideMessage[allocation._id] && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{overrideMessage[allocation._id]}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button 

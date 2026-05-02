@@ -73,6 +73,35 @@ applicationsRouter.get(
 );
 
 applicationsRouter.patch(
+  '/:id/warden-override',
+  requireAuth,
+  requireRole(['Warden', 'Sub-Warden']),
+  async (req: AuthedRequest, res: Response) => {
+    const { id } = req.params;
+    const { assignedBlock, assignedRoom } = req.body as {
+      assignedBlock?: string;
+      assignedRoom?: string;
+    };
+
+    if (!assignedBlock || !assignedRoom) {
+      return res.status(400).json({ message: 'Block and room are required' });
+    }
+
+    const application = await StudentApplication.findByIdAndUpdate(
+      id,
+      { assignedBlock, assignedRoom },
+      { new: true }
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    return res.json({ application });
+  }
+);
+
+applicationsRouter.patch(
   '/:id/warden-approve',
   requireAuth,
   requireRole(['Warden', 'Sub-Warden']),

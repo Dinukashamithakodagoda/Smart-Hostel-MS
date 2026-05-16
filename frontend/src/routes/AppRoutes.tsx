@@ -17,6 +17,7 @@ import { CleaningDashboard } from '../pages/dashboards/CleaningDashboard';
 import { CanteenMenu } from '../pages/canteen/CanteenMenu';
 import { CanteenOrder } from '../pages/canteen/CanteenOrder';
 import { CanteenManagerDashboard } from '../pages/dashboards/CanteenManagerDashboard';
+import { AttendanceDashboard } from '../pages/dashboards/AttendanceDashboard';
 
 export const AppRoutes = () => {
   return (
@@ -31,6 +32,7 @@ export const AppRoutes = () => {
       
       {/* Dashboards */}
       <Route path="/student-dashboard" element={<StudentDashboard />} />
+      <Route path="/attendance-dashboard" element={<AttendanceDashboard />} />
       <Route path="/warden-dashboard" element={<WardenDashboard />} />
       <Route path="/subwarden-dashboard" element={<SubWardenDashboard />} />
       <Route path="/ar-dashboard" element={<ARDashboard />} />

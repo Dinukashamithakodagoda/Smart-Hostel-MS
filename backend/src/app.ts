@@ -1,5 +1,5 @@
-import cors from 'cors';
 import express, { type Request, type Response } from 'express';
+import cors from 'cors';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import { authRouter } from './routes/auth';
@@ -12,6 +12,7 @@ import { noticesRouter } from './routes/notices';
 import { tasksRouter } from './routes/tasks';
 import { usersRouter } from './routes/users';
 import { wardenRouter } from './routes/warden';
+import { notificationsRouter } from './routes/notifications.js';
 
 export const app = express();
 
@@ -62,3 +63,4 @@ app.use('/api/attendance', attendanceRouter);
 app.use('/api/issues', issuesRouter);
 app.use('/api/notices', noticesRouter);
 app.use('/api/warden', wardenRouter);
+app.use('/api/notifications', notificationsRouter);

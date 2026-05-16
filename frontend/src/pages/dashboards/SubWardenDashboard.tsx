@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { NoticeComposer } from '../../components/NoticeComposer';
 import { NoticeManager } from '../../components/NoticeManager';
-import { Users, ClipboardCheck, CheckCircle, XCircle, Save, ArrowLeft } from 'lucide-react';
+import { Users, ClipboardCheck, CheckCircle, XCircle, Save, ArrowLeft, Search, ChevronRight } from 'lucide-react';
 
 interface Block {
   id: string;
@@ -24,6 +24,14 @@ export const SubWardenDashboard = () => {
   const [entries, setEntries] = useState<AttendanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Student Search State
+  const [students, setStudents] = useState<any[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [isViewingStudentDetails, setIsViewingStudentDetails] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const currentBlockName = blocks.find(b => b.id === selectedBlock)?.name;
@@ -152,6 +160,37 @@ export const SubWardenDashboard = () => {
     }
   };
 
+  const searchStudent = async (query: string) => {
+    if (!query.trim()) {
+      setStudents([]);
+      setStudentSearchQuery('');
+      return;
+    }
+
+    try {
+      setStudentsLoading(true);
+      setStudentsError(null);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${apiBaseUrl}/api/applications/search/students?search=${encodeURIComponent(query)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Failed to search students');
+      }
+
+      const data = await response.json();
+      setStudents(data.students || []);
+      setStudentSearchQuery(query);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to search students';
+      setStudentsError(message);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout allowedRole="Sub-Warden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
@@ -187,6 +226,74 @@ export const SubWardenDashboard = () => {
       <div className="mb-6 space-y-6">
         <NoticeComposer />
         <NoticeManager />
+        
+        <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-3 mb-4">
+            <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">Search Students</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+            Find students by name, ID, or email.
+          </p>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Search by name or student ID..."
+              value={studentSearchQuery}
+              onChange={(e) => {
+                const query = e.target.value;
+                setStudentSearchQuery(query);
+                if (query.length > 0) {
+                  searchStudent(query);
+                } else {
+                  setStudents([]);
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {studentSearchQuery && (
+              <div className="max-h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto">
+                {studentsLoading ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    Searching students...
+                  </div>
+                ) : studentsError ? (
+                  <div className="p-4 text-center text-red-600 dark:text-red-400">
+                    {studentsError}
+                  </div>
+                ) : students.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No students found.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {students.map((student) => (
+                      <button
+                        key={student._id}
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setIsViewingStudentDetails(true);
+                        }}
+                        className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                            {student.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.fullName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.studentId} • {student.idCardNumber}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {!isMarkingAttendance ? (

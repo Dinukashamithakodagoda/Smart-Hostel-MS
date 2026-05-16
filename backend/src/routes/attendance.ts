@@ -74,3 +74,56 @@ attendanceRouter.post(
     return res.json({ record });
   }
 );
+
+attendanceRouter.get(
+  '/my-attendance',
+  requireAuth,
+  requireRole(['Student']),
+  async (req: AuthedRequest, res: Response) => {
+    try {
+      // Find student application to get studentId
+      const application = await StudentApplication.findOne({ userId: req.user?.id });
+      if (!application) {
+        return res.status(400).json({ message: 'Student application not found' });
+      }
+
+      const studentId = application.studentId;
+      const records = await AttendanceRecord.find({})
+        .select('date block entries')
+        .lean();
+
+      const studentRecords = records
+        .map((record) => {
+          const entry = record.entries.find((e: any) => e.studentId === studentId);
+          if (!entry) return null;
+          return {
+            date: record.date,
+            block: record.block,
+            present: entry.present,
+            name: entry.name,
+            room: entry.room,
+          };
+        })
+        .filter((r) => r !== null)
+        .sort((a, b) => new Date(b!.date).getTime() - new Date(a!.date).getTime());
+
+      const totalRecords = studentRecords.length;
+      const presentCount = studentRecords.filter((r: any) => r.present).length;
+      const absentCount = totalRecords - presentCount;
+      const attendancePercentage = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
+
+      return res.json({
+        attendance: studentRecords,
+        statistics: {
+          total: totalRecords,
+          present: presentCount,
+          absent: absentCount,
+          percentage: attendancePercentage.toFixed(2),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load attendance';
+      return res.status(500).json({ message });
+    }
+  }
+);

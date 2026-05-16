@@ -72,6 +72,35 @@ applicationsRouter.get(
   }
 );
 
+applicationsRouter.get(
+  '/search/students',
+  requireAuth,
+  requireRole(['Warden', 'Sub-Warden']),
+  async (req: Request, res: Response) => {
+    const { query } = req.query as { query?: string };
+
+    if (!query || query.trim().length === 0) {
+      return res.json({ students: [] });
+    }
+
+    const students = await StudentApplication.find({
+      $or: [
+        { fullName: { $regex: query, $options: 'i' } },
+        { studentId: { $regex: query, $options: 'i' } },
+        { idCardNumber: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } },
+        { contactNumber: { $regex: query, $options: 'i' } },
+      ],
+    })
+      .select('fullName studentId idCardNumber email contactNumber gender faculty assignedBlock assignedRoom status')
+      .sort({ fullName: 1 })
+      .limit(20)
+      .lean();
+
+    return res.json({ students });
+  }
+);
+
 applicationsRouter.patch(
   '/:id/warden-override',
   requireAuth,
@@ -162,6 +191,7 @@ export async function createApplicationForStudent(payload: {
   userId: string;
   fullName: string;
   studentId: string;
+  idCardNumber: string;
   nic: string;
   gender: 'male' | 'female';
   faculty: string;
@@ -177,6 +207,7 @@ export async function createApplicationForStudent(payload: {
     user: payload.userId,
     fullName: payload.fullName,
     studentId: payload.studentId,
+    idCardNumber: payload.idCardNumber,
     nic: payload.nic,
     gender: payload.gender,
     faculty: payload.faculty,

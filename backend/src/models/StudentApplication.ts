@@ -10,6 +10,7 @@ export interface StudentApplicationDocument {
   user: mongoose.Types.ObjectId;
   fullName: string;
   studentId: string;
+  idCardNumber: string;
   nic: string;
   gender: 'male' | 'female';
   faculty: string;
@@ -34,6 +35,7 @@ const applicationSchema = new Schema<StudentApplicationDocument>(
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     fullName: { type: String, required: true },
     studentId: { type: String, required: true },
+    idCardNumber: { type: String, required: true },
     nic: { type: String, required: true },
     gender: { type: String, enum: ['male', 'female'], required: true },
     faculty: { type: String, required: true },

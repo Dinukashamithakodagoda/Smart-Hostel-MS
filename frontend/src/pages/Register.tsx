@@ -10,6 +10,7 @@ export const Register = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     studentId: '',
+    idCardNumber: '',
     nic: '',
     gender: '',
     faculty: '',
@@ -45,6 +46,7 @@ export const Register = () => {
           role: 'Student',
           fullName: formData.fullName,
           studentId: formData.studentId,
+          idCardNumber: formData.idCardNumber,
           nic: formData.nic,
           gender: formData.gender,
           faculty: formData.faculty,
@@ -104,6 +106,14 @@ export const Register = () => {
                 <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Student ID</label>
                 <div className="mt-1">
                   <input type="text" name="studentId" id="studentId" required value={formData.studentId} onChange={handleChange}
+                    className="appearance-none block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="idCardNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">ID Card Number</label>
+                <div className="mt-1">
+                  <input type="text" name="idCardNumber" id="idCardNumber" required value={formData.idCardNumber} onChange={handleChange}
                     className="appearance-none block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" />
                 </div>
               </div>

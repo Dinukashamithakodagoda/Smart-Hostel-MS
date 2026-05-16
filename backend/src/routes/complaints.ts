@@ -1,6 +1,10 @@
 import express, { type Request, type Response } from 'express';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { Complaint } from '../models/Complaint.js';
+import { User } from '../models/User.js';
+import { emailService } from '../services/emailService.js';
+import { gmailOAuthService } from '../services/gmailOAuthService.js';
+import { notificationService } from '../services/notificationService.js';
 
 export const complaintRouter = express.Router();
 
@@ -9,6 +13,11 @@ const categoryRoleMap: Record<string, string> = {
   Cleaning: 'Cleaning Supervisor',
   Canteen: 'Canteen',
 };
+
+// Helper to get the appropriate email service
+function getEmailService() {
+  return process.env.GMAIL_OAUTH_ENABLED === 'true' ? gmailOAuthService : emailService;
+}
 
 complaintRouter.get('/', requireAuth, async (_req: Request, res: Response) => {
   const complaints = await Complaint.find().sort({ createdAt: -1 });
@@ -60,6 +69,77 @@ complaintRouter.post(
       assignedRole,
     });
 
+    // Get the current user for email
+    const currentUser = await User.findById(req.user?.id);
+
+    // Send confirmation email to the student
+    if (currentUser && currentUser.email) {
+      try {
+        const mailService = getEmailService();
+        await mailService.sendComplaintConfirmation({
+          studentName: currentUser.name,
+          studentEmail: currentUser.email,
+          complaintTitle: title,
+          complaintDescription: description,
+          complaintCategory: category,
+          complaintId: complaint._id.toString(),
+          submittedDate: complaint.createdAt,
+        });
+      } catch (emailError) {
+        console.error('Error sending complaint confirmation email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Create in-app notification for the student
+    try {
+      await notificationService.createNotification({
+        userId: req.user!.id,
+        type: 'complaint_submitted',
+        title: 'Complaint Submitted',
+        message: `Your complaint "${title}" has been received and is being processed.`,
+        relatedItemId: complaint._id.toString(),
+        relatedItemType: 'complaint',
+        metadata: {
+          complaintId: complaint._id,
+          category,
+        },
+      });
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+    }
+
+    // Notify assigned role users
+    try {
+      const assignedUsers = await notificationService.getUsersByRole(assignedRole);
+      await notificationService.notifyUsers(assignedUsers, {
+        type: 'complaint_submitted',
+        title: 'New Complaint Assigned',
+        message: `A new ${category} complaint "${title}" has been assigned to you.`,
+        relatedItemId: complaint._id.toString(),
+        relatedItemType: 'complaint',
+        metadata: {
+          complaintId: complaint._id,
+          category,
+          submittedBy: currentUser?.name,
+        },
+      });
+    } catch (notificationError) {
+      console.error('Error notifying assigned role:', notificationError);
+    }
+
+    // Emit real-time notification via Socket.io
+    const io = req.app?.get('io');
+    if (io) {
+      io.emit('complaint:new', {
+        id: complaint._id,
+        title,
+        category,
+        status: complaint.status,
+        assignedRole,
+      });
+    }
+
     return res.status(201).json({ complaint });
   }
 );
@@ -84,6 +164,59 @@ complaintRouter.patch(
 
     complaint.status = status;
     await complaint.save();
+
+    // Get the student who submitted the complaint and the warden who updated it
+    const student = await User.findById(complaint.createdBy);
+    const warden = await User.findById(req.user?.id);
+
+    // Send status update email to the student
+    if (student && student.email) {
+      try {
+        const mailService = getEmailService();
+        await mailService.sendComplaintStatusUpdate({
+          studentName: student.name,
+          studentEmail: student.email,
+          complaintTitle: complaint.title,
+          complaintDescription: complaint.description,
+          complaintCategory: complaint.category,
+          complaintId: complaint._id.toString(),
+          submittedDate: complaint.createdAt,
+          status,
+          wardenName: warden?.name,
+        });
+      } catch (emailError) {
+        console.error('Error sending status update email:', emailError);
+      }
+    }
+
+    // Create notification for the student
+    try {
+      await notificationService.createNotification({
+        userId: complaint.createdBy,
+        type: 'complaint_status_update',
+        title: 'Complaint Status Updated',
+        message: `Your complaint "${complaint.title}" status has been updated to ${status}.`,
+        relatedItemId: complaint._id.toString(),
+        relatedItemType: 'complaint',
+        metadata: {
+          complaintId: complaint._id,
+          newStatus: status,
+          updatedBy: warden?.name,
+        },
+      });
+    } catch (notificationError) {
+      console.error('Error creating status update notification:', notificationError);
+    }
+
+    // Emit real-time notification via Socket.io
+    const io = req.app?.get('io');
+    if (io) {
+      io.to(`user:${complaint.createdBy}`).emit('complaint:status-updated', {
+        complaintId: complaint._id,
+        newStatus: status,
+        title: complaint.title,
+      });
+    }
 
     return res.json({ complaint });
   }

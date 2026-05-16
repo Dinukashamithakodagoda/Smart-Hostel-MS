@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { NoticeComposer } from '../../components/NoticeComposer';
 import { NoticeManager } from '../../components/NoticeManager';
-import { ClipboardList, FileSpreadsheet, CheckCircle, Download } from 'lucide-react';
+import { ClipboardList, FileSpreadsheet, CheckCircle, Download, Search, ChevronRight, ArrowLeft } from 'lucide-react';
 
 export const ARDashboard = () => {
   const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -10,6 +10,14 @@ export const ARDashboard = () => {
   const [allocationsLoading, setAllocationsLoading] = useState(true);
   const [allocationsError, setAllocationsError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Student Search State
+  const [students, setStudents] = useState<any[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [isViewingStudentDetails, setIsViewingStudentDetails] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
   const fetchAllocations = async () => {
     try {
@@ -64,6 +72,37 @@ export const ARDashboard = () => {
     finalize();
   };
 
+  const searchStudent = async (query: string) => {
+    if (!query.trim()) {
+      setStudents([]);
+      setStudentSearchQuery('');
+      return;
+    }
+
+    try {
+      setStudentsLoading(true);
+      setStudentsError(null);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${apiBaseUrl}/api/applications/search/students?search=${encodeURIComponent(query)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Failed to search students');
+      }
+
+      const data = await response.json();
+      setStudents(data.students || []);
+      setStudentSearchQuery(query);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to search students';
+      setStudentsError(message);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
   const handleGenerateReport = () => {
     setIsGenerating(true);
     
@@ -93,6 +132,106 @@ export const ARDashboard = () => {
       setIsGenerating(false);
     }, 1000);
   };
+
+  if (isViewingStudentDetails && selectedStudent) {
+    return (
+      <DashboardLayout allowedRole="AR">
+        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+          <button 
+            onClick={() => {
+              setIsViewingStudentDetails(false);
+              setSelectedStudent(null);
+            }}
+            className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Details</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">View comprehensive student information and allocation.</p>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <div className="md:col-span-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                {selectedStudent.fullName.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedStudent.fullName}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{selectedStudent.studentId}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{selectedStudent.email}</p>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  {selectedStudent.status || 'Active'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Information */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h3>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Student ID</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1 font-mono">{selectedStudent.studentId}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">ID Card Number</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1 font-mono">{selectedStudent.idCardNumber}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Gender</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1">{selectedStudent.gender || 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1 break-all">{selectedStudent.email}</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Contact Information */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h3>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Phone</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1">{selectedStudent.contactNumber || 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Faculty</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1">{selectedStudent.faculty || 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Year</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1">{selectedStudent.yearOfStudy || 'N/A'}</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Room Allocation */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Room Allocation</h3>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Assigned Block</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1 font-medium">{selectedStudent.assignedBlock || 'Not Assigned'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Assigned Room</dt>
+                <dd className="text-sm text-gray-900 dark:text-white mt-1 font-medium text-emerald-600 dark:text-emerald-400">{selectedStudent.assignedRoom || 'Not Assigned'}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout allowedRole="AR">
@@ -194,6 +333,73 @@ export const ARDashboard = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
+        <div className="flex items-center gap-3 mb-4">
+          <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <h3 className="font-semibold text-gray-900 dark:text-white">Search Students</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          Find students by name, ID, or email.
+        </p>
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="Search by name or student ID..."
+            value={studentSearchQuery}
+            onChange={(e) => {
+              const query = e.target.value;
+              setStudentSearchQuery(query);
+              if (query.length > 0) {
+                searchStudent(query);
+              } else {
+                setStudents([]);
+              }
+            }}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
+          />
+          {studentSearchQuery && (
+            <div className="max-h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto">
+              {studentsLoading ? (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  Searching students...
+                </div>
+              ) : studentsError ? (
+                <div className="p-4 text-center text-red-600 dark:text-red-400">
+                  {studentsError}
+                </div>
+              ) : students.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  No students found.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {students.map((student) => (
+                    <button
+                      key={student._id}
+                      onClick={() => {
+                        setSelectedStudent(student);
+                        setIsViewingStudentDetails(true);
+                      }}
+                      className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                          {student.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.fullName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.studentId} • {student.idCardNumber}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

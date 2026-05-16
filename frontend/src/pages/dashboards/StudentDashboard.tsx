@@ -399,6 +399,20 @@ export const StudentDashboard = () => {
             </Link>
           </div>
         </div>
+
+        <div className="bg-green-50/50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 p-6 rounded-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <h3 className="font-semibold text-green-900 dark:text-green-300">Attendance</h3>
+          </div>
+          <p className="text-sm text-green-800 dark:text-green-200 mb-3">Track your hostel attendance records.</p>
+          <Link 
+            to="/attendance-dashboard"
+            className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-3 py-1.5 rounded-lg hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
+          >
+            View Attendance
+          </Link>
+        </div>
       </div>
 
       {/* Complaint Modal */}

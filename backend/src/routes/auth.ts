@@ -23,6 +23,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   const {
     fullName,
     studentId,
+    idCardNumber,
     nic,
     gender,
     faculty,
@@ -33,6 +34,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   } = req.body as {
     fullName?: string;
     studentId?: string;
+    idCardNumber?: string;
     nic?: string;
     gender?: 'male' | 'female';
     faculty?: string;
@@ -53,6 +55,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   if (
     !fullName ||
     !studentId ||
+    !idCardNumber ||
     !nic ||
     !gender ||
     !faculty ||
@@ -75,6 +78,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     userId: user.id,
     fullName,
     studentId,
+    idCardNumber,
     nic,
     gender,
     faculty,

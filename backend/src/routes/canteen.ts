@@ -4,6 +4,7 @@ import { CanteenItem } from '../models/CanteenItem.js';
 import { DeliveryStatus } from '../models/DeliveryStatus.js';
 import { Order } from '../models/Order.js';
 import { Notice } from '../models/Notice.js';
+import { dispatchNoticeEmails } from '../services/noticeEmailDispatcher.js';
 
 export const canteenRouter = express.Router();
 
@@ -185,5 +186,15 @@ canteenRouter.post('/delivery/arrived', requireAuth, requireRole(['Canteen']), a
   });
 
   const hydrated = await Notice.findById(notice._id).populate('createdBy', 'name email role');
+  
+  dispatchNoticeEmails(
+    notice._id.toString(),
+    notice.title,
+    notice.content,
+    notice.audience,
+    notice.targetBlock,
+    notice.createdAt
+  );
+
   return res.status(201).json({ notice: hydrated });
 });

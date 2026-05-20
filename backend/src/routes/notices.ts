@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { Notice } from '../models/Notice.js';
 import { StudentApplication } from '../models/StudentApplication.js';
+import { dispatchNoticeEmails } from '../services/noticeEmailDispatcher.js';
 
 export const noticesRouter = express.Router();
 
@@ -62,6 +63,16 @@ noticesRouter.post(
     });
 
     const hydrated = await Notice.findById(notice._id).populate('createdBy', 'name email role');
+    
+    dispatchNoticeEmails(
+      notice._id.toString(),
+      notice.title,
+      notice.content,
+      notice.audience,
+      notice.targetBlock,
+      notice.createdAt
+    );
+
     return res.status(201).json({ notice: hydrated });
   }
 );

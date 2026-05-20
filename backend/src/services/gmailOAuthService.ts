@@ -252,6 +252,41 @@ export class GmailOAuthService {
     });
   }
 
+  async sendNoticeEmail(data: {
+    recipientName: string;
+    recipientEmail: string;
+    noticeTitle: string;
+    noticeContent: string;
+    noticeId: string;
+    publishedDate: Date;
+  }): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #333; border-bottom: 3px solid #9C27B0; padding-bottom: 10px;">New Notice</h2>
+        
+        <p style="color: #666; font-size: 16px;">Dear <strong>${data.recipientName}</strong>,</p>
+        
+        <p style="color: #666; font-size: 14px;">An important notice has been posted on the Smart Hostel Management System.</p>
+        
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #333; margin-top: 0;">${data.noticeTitle}</h3>
+          <p style="color: #666; line-height: 1.6;">${data.noticeContent}</p>
+          <p style="margin: 8px 0;"><strong>Published Date:</strong> ${new Date(data.publishedDate).toLocaleString()}</p>
+        </div>
+        
+        <p style="color: #666; font-size: 14px;">Please log into the system to view the full details and any attachments.</p>
+        
+        <p style="color: #666; font-size: 14px;">Best regards,<br><strong>Smart Hostel Management System</strong></p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: data.recipientEmail,
+      subject: `Notice - ${data.noticeTitle}`,
+      html,
+    });
+  }
+
   async verifyConnection(): Promise<boolean> {
     // If not initialized, check if token exists
     if (!this.isInitialized) {

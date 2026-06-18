@@ -1,44 +1,68 @@
+/**
+ * Canteen Context
+ * Manages canteen menu, shopping cart, and order operations
+ * Provides integration with backend API for food items and order management
+ * Handles both student shopping and canteen manager operations
+ */
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 
+/**
+ * Food item structure as displayed in the menu
+ */
 export interface FoodItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  available: boolean;
+  id: string;            // Unique food item ID
+  name: string;          // Item name
+  price: number;         // Price in currency units
+  image: string;         // Image URL
+  category: string;      // Food category (e.g., 'Lunch', 'Breakfast')
+  available: boolean;    // Whether item is available for order
 }
 
+/**
+ * Cart item extends FoodItem with quantity
+ */
 export interface CartItem extends FoodItem {
-  quantity: number;
+  quantity: number;      // Quantity in cart
 }
 
+/**
+ * Order structure
+ */
 export interface Order {
-  id: string;
-  studentName: string;
-  items: CartItem[];
-  total: number;
-  paymentMethod: 'Cash' | 'Online';
-  status: 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
-  date: string;
+  id: string;                    // Unique order ID
+  studentName: string;           // Student who placed order
+  items: CartItem[];             // Items in the order
+  total: number;                 // Total order amount
+  paymentMethod: 'Cash' | 'Online'; // Payment method
+  status: 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled'; // Order status
+  date: string;                  // Order date
 }
 
+/**
+ * Canteen context type definition
+ */
 interface CanteenContextType {
-  menu: FoodItem[];
-  cart: CartItem[];
-  orders: Order[];
-  addToCart: (item: FoodItem) => void;
-  removeFromCart: (id: string) => void;
-  updateCartQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
-  placeOrder: (studentName: string, paymentMethod: 'Cash' | 'Online') => void;
-  updateOrderStatus: (id: string, status: Order['status']) => void;
-  addFoodItem: (item: Omit<FoodItem, 'id'>) => void;
-  updateFoodItem: (id: string, item: Partial<FoodItem>) => void;
-  deleteFoodItem: (id: string) => void;
+  // State
+  menu: FoodItem[];                                    // Available food items
+  cart: CartItem[];                                    // Shopping cart items
+  orders: Order[];                                     // User's orders
+  // Cart operations
+  addToCart: (item: FoodItem) => void;                // Add item to cart
+  removeFromCart: (id: string) => void;              // Remove item from cart
+  updateCartQuantity: (id: string, quantity: number) => void; // Update item quantity
+  clearCart: () => void;                             // Clear entire cart
+  // Order operations
+  placeOrder: (studentName: string, paymentMethod: 'Cash' | 'Online') => void; // Place new order
+  updateOrderStatus: (id: string, status: Order['status']) => void; // Update order status
+  // Menu management (for canteen staff)
+  addFoodItem: (item: Omit<FoodItem, 'id'>) => void; // Add new food item
+  updateFoodItem: (id: string, item: Partial<FoodItem>) => void; // Update food item
+  deleteFoodItem: (id: string) => void;              // Delete food item
 }
 
+// Create the Canteen context
 const CanteenContext = createContext<CanteenContextType | undefined>(undefined);
 
 export const CanteenProvider = ({ children }: { children: ReactNode }) => {

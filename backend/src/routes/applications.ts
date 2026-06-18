@@ -75,21 +75,22 @@ applicationsRouter.get(
 applicationsRouter.get(
   '/search/students',
   requireAuth,
-  requireRole(['Warden', 'Sub-Warden']),
+  requireRole(['Warden', 'Sub-Warden', 'AR']),
   async (req: Request, res: Response) => {
-    const { query } = req.query as { query?: string };
+    const { query, search } = req.query as { query?: string; search?: string };
+    const term = query || search;
 
-    if (!query || query.trim().length === 0) {
+    if (!term || term.trim().length === 0) {
       return res.json({ students: [] });
     }
 
     const students = await StudentApplication.find({
       $or: [
-        { fullName: { $regex: query, $options: 'i' } },
-        { studentId: { $regex: query, $options: 'i' } },
-        { idCardNumber: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } },
-        { contactNumber: { $regex: query, $options: 'i' } },
+        { fullName: { $regex: term, $options: 'i' } },
+        { studentId: { $regex: term, $options: 'i' } },
+        { idCardNumber: { $regex: term, $options: 'i' } },
+        { email: { $regex: term, $options: 'i' } },
+        { contactNumber: { $regex: term, $options: 'i' } },
       ],
     })
       .select('fullName studentId idCardNumber email contactNumber gender faculty assignedBlock assignedRoom status')

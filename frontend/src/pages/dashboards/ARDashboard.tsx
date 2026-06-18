@@ -103,6 +103,17 @@ export const ARDashboard = () => {
     }
   };
 
+  const handleStudentSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    searchStudent(studentSearchQuery);
+  };
+
+  const handleClearStudentSearch = () => {
+    setStudentSearchQuery('');
+    setStudents([]);
+    setStudentsError(null);
+  };
+
   const handleGenerateReport = () => {
     setIsGenerating(true);
     
@@ -244,6 +255,90 @@ export const ARDashboard = () => {
           <p className="text-gray-500 dark:text-gray-400 text-sm">Assistant Registrar - Policy and allocations overview.</p>
         </div>
       </div>
+
+      <div className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 p-6 mb-6">
+        <div className="flex items-start justify-between gap-4 flex-col lg:flex-row lg:items-center">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <h3 className="font-semibold text-gray-900 dark:text-white">Search Students</h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Find a student by name, student ID, or email and open their allocation details.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleStudentSearchSubmit} className="mt-5 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name, student ID, or email..."
+              value={studentSearchQuery}
+              onChange={(e) => setStudentSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={handleClearStudentSearch}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+
+        {studentSearchQuery && (
+          <div className="mt-5 max-h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto">
+            {studentsLoading ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                Searching students...
+              </div>
+            ) : studentsError ? (
+              <div className="p-4 text-center text-red-600 dark:text-red-400">
+                {studentsError}
+              </div>
+            ) : students.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                No students found.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {students.map((student) => (
+                  <button
+                    key={student._id}
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setIsViewingStudentDetails(true);
+                    }}
+                    className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                        {student.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.fullName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.studentId} • {student.idCardNumber}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
@@ -333,73 +428,6 @@ export const ARDashboard = () => {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-      <div className="border border-gray-200 dark:border-gray-700 p-6 rounded-xl bg-white dark:bg-gray-800">
-        <div className="flex items-center gap-3 mb-4">
-          <Search className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">Search Students</h3>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          Find students by name, ID, or email.
-        </p>
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Search by name or student ID..."
-            value={studentSearchQuery}
-            onChange={(e) => {
-              const query = e.target.value;
-              setStudentSearchQuery(query);
-              if (query.length > 0) {
-                searchStudent(query);
-              } else {
-                setStudents([]);
-              }
-            }}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
-          />
-          {studentSearchQuery && (
-            <div className="max-h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto">
-              {studentsLoading ? (
-                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                  Searching students...
-                </div>
-              ) : studentsError ? (
-                <div className="p-4 text-center text-red-600 dark:text-red-400">
-                  {studentsError}
-                </div>
-              ) : students.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                  No students found.
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {students.map((student) => (
-                    <button
-                      key={student._id}
-                      onClick={() => {
-                        setSelectedStudent(student);
-                        setIsViewingStudentDetails(true);
-                      }}
-                      className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
-                          {student.fullName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.fullName}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{student.studentId} • {student.idCardNumber}</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </DashboardLayout>

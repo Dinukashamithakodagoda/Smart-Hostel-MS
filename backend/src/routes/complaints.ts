@@ -14,6 +14,12 @@ const categoryRoleMap: Record<string, string> = {
   Canteen: 'Canteen',
 };
 
+const forwardedRoleMap: Record<string, string> = {
+  Maintenance: 'Maintenance Supervisor',
+  Cleaning: 'Cleaning Supervisor',
+  Canteen: 'Canteen',
+};
+
 // Helper to get the appropriate email service
 function getEmailService() {
   return process.env.GMAIL_OAUTH_ENABLED === 'true' ? gmailOAuthService : emailService;
@@ -162,7 +168,17 @@ complaintRouter.patch(
       return res.status(403).json({ message: 'Forbidden' });
     }
 
+    const shouldForwardToTeam =
+      status === 'in_progress' &&
+      complaint.assignedRole === 'Warden' &&
+      Boolean(forwardedRoleMap[complaint.category]);
+
+    const forwardedRole = shouldForwardToTeam ? forwardedRoleMap[complaint.category] : undefined;
+
     complaint.status = status;
+    if (forwardedRole) {
+      complaint.assignedRole = forwardedRole;
+    }
     await complaint.save();
 
     // Get the student who submitted the complaint and the warden who updated it
@@ -208,6 +224,26 @@ complaintRouter.patch(
       console.error('Error creating status update notification:', notificationError);
     }
 
+    if (forwardedRole) {
+      try {
+        await notificationService.notifyRoleUsers(forwardedRole, {
+          type: 'complaint_status_update',
+          title: 'New Complaint Assigned',
+          message: `A ${complaint.category.toLowerCase()} complaint "${complaint.title}" has been forwarded to you.`,
+          relatedItemId: complaint._id.toString(),
+          relatedItemType: 'complaint',
+          metadata: {
+            complaintId: complaint._id,
+            category: complaint.category,
+            forwardedBy: warden?.name,
+            previousRole: 'Warden',
+          },
+        });
+      } catch (notificationError) {
+        console.error('Error notifying forwarded role:', notificationError);
+      }
+    }
+
     // Emit real-time notification via Socket.io
     const io = req.app?.get('io');
     if (io) {
@@ -216,6 +252,15 @@ complaintRouter.patch(
         newStatus: status,
         title: complaint.title,
       });
+
+      if (forwardedRole) {
+        io.emit('complaint:assigned', {
+          complaintId: complaint._id,
+          assignedRole: forwardedRole,
+          title: complaint.title,
+          category: complaint.category,
+        });
+      }
     }
 
     return res.json({ complaint });

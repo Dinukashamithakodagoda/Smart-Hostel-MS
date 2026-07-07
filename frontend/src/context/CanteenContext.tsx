@@ -162,6 +162,23 @@ export const CanteenProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const isCanteenStaff = user?.role === 'Canteen';
+
+    if (isCanteenStaff) {
+      const allResponse = await fetch(`${apiBaseUrl}/api/canteen/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!allResponse.ok) {
+        setOrders([]);
+        return;
+      }
+
+      const data = await allResponse.json();
+      setOrders((data.orders || []).map(mapOrder));
+      return;
+    }
+
     const mineResponse = await fetch(`${apiBaseUrl}/api/canteen/orders/mine`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -172,16 +189,7 @@ export const CanteenProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const allResponse = await fetch(`${apiBaseUrl}/api/canteen/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!allResponse.ok) {
-      return;
-    }
-
-    const data = await allResponse.json();
-    setOrders((data.orders || []).map(mapOrder));
+    setOrders([]);
   };
 
   useEffect(() => {

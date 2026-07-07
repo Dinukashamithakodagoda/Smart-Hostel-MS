@@ -128,6 +128,19 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173` and backend API at `http://localhost:5000`
 
+### Troubleshooting
+
+**MongoDB Connection ETIMEDOUT (MongoDB Atlas)**
+If you encounter a connection timeout error when running the backend (e.g., `MongoNetworkError: connect ETIMEDOUT`), it is likely because your current IP address is not whitelisted in MongoDB Atlas. 
+
+To fix this:
+1. Log into your [MongoDB Atlas dashboard](https://cloud.mongodb.com/).
+2. Navigate to **Network Access** under the **Security** section in the left sidebar.
+3. Click **+ Add IP Address**.
+4. Click **Add Current IP Address**.
+5. Confirm and wait for the status to become *Active*.
+6. Restart your backend server.
+
 ## 📚 API Endpoints
 
 ### Authentication Routes

@@ -7,7 +7,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "oauth-setup": "tsx scripts/setupGmailOAuth.ts"
+    "oauth-setup": "tsx scripts/setupGmailOAuth.ts",
+    "reset-staff-password": "tsx scripts/resetStaffPassword.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",

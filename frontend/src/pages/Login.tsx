@@ -31,24 +31,24 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-200">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-8 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="flex justify-center">
-          <div className="bg-indigo-600 p-3 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none">
+            <Building2 className="h-7 w-7 text-white" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+        <h2 className="mt-5 text-center text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
           Welcome Back
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-1.5 text-center text-sm text-gray-600 dark:text-gray-400">
           Sign in to your account
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-xl shadow-gray-200/50 dark:shadow-none sm:rounded-2xl sm:px-10 border border-gray-100 dark:border-gray-700 transition-colors duration-200">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-sm">
+        <div className="bg-white dark:bg-gray-800 py-6 px-5 shadow-xl shadow-gray-200/50 dark:shadow-none sm:rounded-2xl sm:px-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-400/40 dark:bg-red-500/10 dark:text-red-200">
                 {error}
@@ -99,7 +99,7 @@ export const Login = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center">
                 <input
                   id="remember-me"
@@ -112,7 +112,7 @@ export const Login = () => {
                 </label>
               </div>
 
-              <div className="text-sm">
+              <div className="text-sm shrink-0">
                 <a href="#" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300">
                   Forgot your password?
                 </a>
